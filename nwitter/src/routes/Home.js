@@ -1,29 +1,29 @@
 import { dbService } from "fbase";
 import React, { useEffect, useState } from "react";
-import { collection, addDoc, getDocs } from "firebase/firestore"
+import { collection, addDoc, getDocs, onSnapshot, orderBy, query  } from "firebase/firestore"
 
-const Home = () => {
+const Home = ({ userObj }) => {
+    console.log(userObj);
     const [nweet, setNweet] = useState("");
     const [nweets, setNweets] = useState([]);
-    const getNweets = async () => {
-        const dbNweets = await getDocs(collection(dbService, "nweets"));
-        dbNweets.forEach((document) => {
-            const nweetObject = {
-                ...document.data(),
-                id: document.id,
-            };
-            setNweets((prev) => [nweetObject, ...prev]);
-        });
-    };
-    useEffect(() => {    
-        getNweets();
+    useEffect( () => {
+        onSnapshot (
+        query(collection(dbService, "nweets"), orderBy("createdAt", "desc")),
+        (snapshot => {
+            const nweetArray = snapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data(),
+            }));
+        setNweets(nweetArray);
+        }));
     }, []);
-    const onSubmit = async (event) => {
+    const onSubmit = async (event) => {  
         event.preventDefault();
         try {
             const docRef = await addDoc(collection(dbService, "nweets"), {
-            nweet,
-            createdAt: Date.now(),
+            text: nweet,
+            createdAt: Date.now(), 
+            createorId: userObj.uid,
             });
             console.log("Document written with ID: ", docRef.id);
         } catch (error) {
@@ -37,7 +37,6 @@ const Home = () => {
         } = event;
         setNweet(value);
     };
-    console.log(nweets);
     return (
         <div>
             <form onSubmit={onSubmit}>
@@ -56,7 +55,7 @@ const Home = () => {
             <div>
                 {nweets.map((nweet) => 
                 <div key={nweet.id}>
-                    <h4>{nweet.nweet}</h4>
+                    <h4>{nweet.text}</h4>
                 </div>)}    
             </div> 
         </div>  
